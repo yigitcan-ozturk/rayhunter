@@ -45,6 +45,7 @@ impl Command<'_> {
 struct Argument<'a> {
     advanced: bool,
     flag: String,
+    help: String,
     label: &'a str,
     takes_values: bool,
 }
@@ -70,10 +71,37 @@ impl Argument<'_> {
         Ok(Argument {
             advanced: modifier.advanced,
             flag: format!("--{}", partial_flag),
+            help: argument_help(argument),
             label: modifier.gui_label,
             takes_values: argument.get_action().takes_values(),
         })
     }
+}
+
+fn argument_help(argument: &clap::Arg) -> String {
+    let mut help = argument
+        .get_help()
+        .map(ToString::to_string)
+        .unwrap_or_default();
+    let default_values = argument.get_default_values();
+
+    if argument.get_action().takes_values()
+        && !argument.is_hide_default_value_set()
+        && !default_values.is_empty()
+    {
+        let default_values = default_values
+            .iter()
+            .map(|value| value.to_string_lossy())
+            .collect::<Vec<_>>()
+            .join(" ");
+
+        if !help.is_empty() {
+            help.push(' ');
+        }
+        help.push_str(&format!("[default: {default_values}]"));
+    }
+
+    help
 }
 
 impl Subcommand<'_> {
@@ -113,5 +141,41 @@ impl Subcommand<'_> {
             command: modifier.command,
             label: modifier.gui_label,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const MODIFIER: modifiers::ArgumentModifier<'static> = modifiers::ArgumentModifier {
+        clap_id: "example",
+        gui_label: "Example",
+        advanced: false,
+    };
+
+    #[test]
+    fn test_argument_help_includes_default_values() {
+        let argument = clap::Arg::new("example")
+            .long("example")
+            .help("Example help")
+            .default_values(["one", "two"]);
+
+        let argument = Argument::try_new(&argument, &MODIFIER).unwrap();
+
+        assert_eq!(argument.help, "Example help [default: one two]");
+    }
+
+    #[test]
+    fn test_argument_help_respects_hidden_default_values() {
+        let argument = clap::Arg::new("example")
+            .long("example")
+            .help("Example help")
+            .default_value("hidden")
+            .hide_default_value(true);
+
+        let argument = Argument::try_new(&argument, &MODIFIER).unwrap();
+
+        assert_eq!(argument.help, "Example help");
     }
 }

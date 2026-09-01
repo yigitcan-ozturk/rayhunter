@@ -36,11 +36,21 @@
     }
 </script>
 
+{#snippet helpIcon(arg: InstallerArgument)}
+    {#if arg.help}
+        <span
+            class="border border-gray-400 cursor-help inline-flex items-center justify-center ml-1 rounded-full text-gray-600 text-xs h-4 w-4"
+            title={arg.help}>?</span
+        >
+    {/if}
+{/snippet}
+
 {#snippet submenu(args: InstallerArgument[])}
     {#each args as arg (arg.flag)}
         {#if arg.takes_values}
-            <label class="block font-medium mb-1 text-gray-700 text-sm" for={arg.flag}>
+            <label class="flex font-medium items-center mb-1 text-gray-700 text-sm" for={arg.flag}>
                 {arg.label}
+                {@render helpIcon(arg)}
             </label>
             <input
                 bind:value={inputData.strings[arg.flag]}
@@ -58,8 +68,9 @@
                     spellcheck="false"
                     type="checkbox"
                 />
-                <label for={arg.flag} class="font-medium ml-2 text-sm text-gray-700">
+                <label for={arg.flag} class="flex font-medium items-center ml-2 text-sm text-gray-700">
                     {arg.label}
+                    {@render helpIcon(arg)}
                 </label>
             </div>
         {/if}
